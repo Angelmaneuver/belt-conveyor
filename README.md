@@ -19,3 +19,6 @@ GLOBAL OPTIONS:
 ## Required
 [An OpenCV installation environment that meets GoCV requirements is required.](https://github.com/hybridgroup/gocv?tab=readme-ov-file#how-to-install)
 Therefore, it cannot be built at this time and must be run in a Go installation environment.
+
+## Restriction
+When a directories is added under a watch point, files in sub directories are not converted.

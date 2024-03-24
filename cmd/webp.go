@@ -56,7 +56,7 @@ func main() {
 
 			var converter manager.Converter = c
 
-			manager, err := manager.New(&converter, destination)
+			manager, err := manager.New(&converter, watchpoint, destination)
 			if err != nil {
 				log.Fatal("Error ", err)
 			}

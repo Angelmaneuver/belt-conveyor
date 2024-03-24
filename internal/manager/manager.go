@@ -16,26 +16,33 @@ type (
 	}
 
 	ConvertManager struct {
-		converter Converter
-		dest      string
+		converter  Converter
+		watchpoint string
+		dest       string
 	}
 )
 
-func New(converter *Converter, dest string) (*ConvertManager, error) {
+func New(converter *Converter, watchpoint string, dest string) (*ConvertManager, error) {
 	if f, err := os.Stat(dest); os.IsNotExist(err) || !f.IsDir() {
 		return nil, errors.New("output destination path is invalid:" + dest)
 	}
 
 	return &ConvertManager{
-		converter: *converter,
-		dest:      dest,
+		converter:  *converter,
+		watchpoint: watchpoint,
+		dest:       dest,
 	}, nil
 
 }
 
 func (cm ConvertManager) Run(src string) error {
-	if f, err := os.Stat(src); os.IsNotExist(err) || f.IsDir() {
+	f, err := os.Stat(src)
+	if os.IsNotExist(err) {
 		return errors.New("input file path is invalid:" + src)
+	}
+
+	if f.IsDir() {
+		return nil
 	}
 
 	mtype, err := mimetype.DetectFile(src)
@@ -47,7 +54,20 @@ func (cm ConvertManager) Run(src string) error {
 		return nil
 	}
 
-	if err := cm.converter.Run(src, filepath.Base(src[:len(src)-len(filepath.Ext(src))]), cm.dest); err != nil {
+	sub := strings.Replace(filepath.Dir(src), cm.watchpoint, "", 1)
+	dest := cm.dest
+
+	if len(sub) > 0 {
+		dest = filepath.Join(dest, sub)
+
+		if f, err := os.Stat(dest); os.IsNotExist(err) || !f.IsDir() {
+			if err := os.MkdirAll(dest, os.ModePerm); err != nil {
+				return err
+			}
+		}
+	}
+
+	if err := cm.converter.Run(src, filepath.Base(src[:len(src)-len(filepath.Ext(src))]), dest); err != nil {
 		return err
 	}
 

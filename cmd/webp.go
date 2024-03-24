@@ -37,11 +37,19 @@ func main() {
 				Required: false,
 				Value:    100,
 			},
+			&cli.IntFlag{
+				Name:     "thread",
+				Aliases:  []string{"t"},
+				Usage:    "Number of threads to process.",
+				Required: false,
+				Value:    10,
+			},
 		},
 		Action: func(ctx *cli.Context) error {
 			var watchpoint = ctx.String("wp")
 			var destination = ctx.String("d")
 			var quality = ctx.Int("q")
+			var thread = ctx.Int("t")
 
 			if watchpoint == destination {
 				log.Fatal("Error watchpoint and destination can't specify the same location")
@@ -78,7 +86,7 @@ func main() {
 				return nil
 			})
 
-			watcher.Start(watchpoint, manager)
+			watcher.Start(watchpoint, manager, thread)
 
 			return nil
 		},

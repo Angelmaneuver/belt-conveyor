@@ -13,6 +13,7 @@ GLOBAL OPTIONS:
    --watchpoint Directory Path, --wp Directory Path  Directory Path to watch.
    --destination Directory Path, -d Directory Path   Directory Path to store conversion result files.
    --quality value, -q value                         For WEBP, it can be a quality from 1 to 100 (the higher is the better). By default (without any parameter) and for quality above 100 the lossless compression is used. (default: 100)
+   --thread value, -t value                          Number of threads to process. (default: 10)
    --help, -h                                        show help
 ```
 

@@ -2,48 +2,79 @@ package watcher
 
 import (
 	"log"
+	"math"
+	"sync"
+	"time"
 
 	"github.com/Angelmaneuver/belt-conveyor/internal/manager"
 	"github.com/fsnotify/fsnotify"
 )
 
-func Start(watchpoint string, cm *manager.ConvertManager, thread int) {
-	watcher, err := fsnotify.NewWatcher()
+const WAIT = 5000 * time.Millisecond
+
+func Start(watchpoint string, cm *manager.ConvertManager) {
+	w, err := fsnotify.NewWatcher()
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer watcher.Close()
+	defer w.Close()
 
-	for i := 0; i < thread; i++ {
-		go func() {
-			for {
-				select {
-				case event, sucess := <-watcher.Events:
-					if !sucess {
-						return
-					}
+	go watch(w, cm)
 
-					log.Println("Event ", event)
-
-					if event.Has(fsnotify.Create) {
-						if err := cm.Run(event.Name); err != nil {
-							log.Panicln("Error ", err)
-						}
-					}
-				case err, success := <-watcher.Errors:
-					if !success {
-						return
-					}
-
-					log.Println("Error ", err)
-				}
-			}
-		}()
-	}
-
-	if err := watcher.Add(watchpoint); err != nil {
+	if err := w.Add(watchpoint); err != nil {
 		log.Fatal(err)
 	}
 
 	<-make(chan struct{})
+}
+
+func watch(w *fsnotify.Watcher, cm *manager.ConvertManager) {
+	var (
+		mu     sync.Mutex
+		timers = make(map[string]*time.Timer)
+		event  = func(e fsnotify.Event) {
+			if err := cm.Run(e.Name); err != nil {
+				log.Panicln("Error ", err)
+			}
+
+			mu.Lock()
+			delete(timers, e.Name)
+			mu.Unlock()
+		}
+	)
+
+	for {
+		select {
+		case err, sucess := <-w.Errors:
+			if !sucess {
+				return
+			}
+
+			log.Println("Error", err)
+
+		case e, sucess := <-w.Events:
+			if !sucess {
+				return
+			}
+
+			if !e.Has(fsnotify.Create) && !e.Has(fsnotify.Write) {
+				continue
+			}
+
+			mu.Lock()
+			timer, sucess := timers[e.Name]
+			mu.Unlock()
+
+			if !sucess {
+				timer = time.AfterFunc(math.MaxInt64, func() { event(e) })
+				timer.Stop()
+
+				mu.Lock()
+				timers[e.Name] = timer
+				mu.Unlock()
+			}
+
+			timer.Reset(WAIT)
+		}
+	}
 }

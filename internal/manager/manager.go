@@ -51,12 +51,10 @@ func (cm ConvertManager) Run(src string) error {
 	}
 
 	if !strings.HasPrefix(mtype.String(), "image/") {
-		return nil
+		return os.Rename(src, filepath.Join(cm.dest, filepath.Base(src)))
 	}
 
-	dest := cm.dest
-
-	if err := cm.converter.Run(src, filepath.Base(src[:len(src)-len(filepath.Ext(src))]), dest); err != nil {
+	if err := cm.converter.Run(src, filepath.Base(src[:len(src)-len(filepath.Ext(src))]), cm.dest); err != nil {
 		return err
 	}
 

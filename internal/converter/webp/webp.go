@@ -42,6 +42,7 @@ func (c WebpConverter) Run(src string, basename string, dest string) error {
 	if img.Empty() {
 		return errors.New("failed to read image:" + src)
 	}
+	defer img.Close()
 
 	output := filepath.Join(dest, basename+".webp")
 
